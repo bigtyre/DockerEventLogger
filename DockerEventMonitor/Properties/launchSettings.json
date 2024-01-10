@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "DockerEventMonitor": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "DockerfileRunArguments": "-v /var/run/docker.sock:/var/run/docker.sock"
+    }
+  }
+}
