@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/DockerEventMonitor/appSettings.json
+/DockerEventMonitor/appSettings.Development.json
+/.env
+/DockerEventMonitor/.env

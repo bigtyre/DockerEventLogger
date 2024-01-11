@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "EventMonitor": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "DockerfileRunArguments": "-v ~/.microsoft/usersecrets:/root/.microsoft/usersecrets"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+  dockereventmonitor:
+    image: ${DOCKER_REGISTRY-}dockereventmonitor
+    build:
+      context: .
+      dockerfile: DockerEventMonitor/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+  
+  

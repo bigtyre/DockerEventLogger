@@ -5,7 +5,10 @@
     },
     "Docker": {
       "commandName": "Docker",
-      "DockerfileRunArguments": "-v /var/run/docker.sock:/var/run/docker.sock"
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "DockerfileRunArguments": "-v /var/run/docker.sock:/var/run/docker.sock -v ~/.microsoft/usersecrets:/root/.microsoft/usersecrets"
     }
   }
 }

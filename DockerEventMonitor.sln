@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DockerEventMonitor", "DockerEventMonitor\DockerEventMonitor.csproj", "{3922468F-160C-4948-9C18-6A64B2917CB5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DockerEventMonitor", "DockerEventMonitor\DockerEventMonitor.csproj", "{3922468F-160C-4948-9C18-6A64B2917CB5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventMonitor", "EventMonitor\EventMonitor.csproj", "{86F36DE1-266B-4E21-AB3C-7BA479EA4893}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{1517A7FC-AA72-4FDB-8357-945910C25163}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{3922468F-160C-4948-9C18-6A64B2917CB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3922468F-160C-4948-9C18-6A64B2917CB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3922468F-160C-4948-9C18-6A64B2917CB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86F36DE1-266B-4E21-AB3C-7BA479EA4893}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86F36DE1-266B-4E21-AB3C-7BA479EA4893}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86F36DE1-266B-4E21-AB3C-7BA479EA4893}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86F36DE1-266B-4E21-AB3C-7BA479EA4893}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1517A7FC-AA72-4FDB-8357-945910C25163}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1517A7FC-AA72-4FDB-8357-945910C25163}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1517A7FC-AA72-4FDB-8357-945910C25163}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1517A7FC-AA72-4FDB-8357-945910C25163}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
