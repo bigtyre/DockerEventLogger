@@ -1,6 +1,5 @@
 ﻿using BigTyre.Docker.Configuration;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.UserSecrets;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using System.Diagnostics;
@@ -33,7 +32,7 @@ while (!process.StandardOutput.EndOfStream)
         var dockerEvent = JsonConvert.DeserializeObject<DockerEvent>(line);
         if (dockerEvent is null)
             continue;
-                
+
         var action = dockerEvent.Action;
         if (action is null)
             continue;
@@ -79,6 +78,9 @@ while (!process.StandardOutput.EndOfStream)
         Console.Error.WriteLine($"Error while processing docker event: {ex.Message}");
     }
 }
+
+Console.WriteLine("Docker events process ended. Application closing...");
+
 
 void HandleContainerEvent(
     DateTimeOffset time, 
