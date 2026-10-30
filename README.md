@@ -2,15 +2,18 @@
 
 This app logs docker events to a MySQL database.
 
-To use it, set MySQLConnectionString in the environment variables and bind /var/run/docker.sock readonly, like so:
+Before running the app, copy `example.env` to `.env` in the solution root:
 
+```powershell
+Copy-Item example.env .env
 ```
-services:
-  docker-events:
-    build: .
-    environment:
-      MySQLConnectionString: ${DOCKER_EVENT_LOGGER_MYSQL_CONNECTION_STRING}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
 
+Edit `.env` and replace the placeholders in `MySqlConnectionString` with your MySQL host, database name, username, and password.
+
+Then start the app using Docker Compose:
+
+```sh
+docker compose up --build -d
 ```
+
+The included Compose configuration loads `.env` into the container and mounts `/var/run/docker.sock` read-only so the app can monitor Docker events.

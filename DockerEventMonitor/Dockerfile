@@ -1,6 +1,6 @@
 #See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine AS base
 
 # Install Docker CLI
 RUN apk add --no-cache docker-cli
@@ -10,7 +10,7 @@ VOLUME /var/run/docker.sock
 
 WORKDIR /app
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["DockerEventMonitor/DockerEventMonitor.csproj", "DockerEventMonitor/"]
 RUN dotnet restore "DockerEventMonitor/DockerEventMonitor.csproj"
