@@ -9,7 +9,7 @@ Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-co
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B1ADD49E-D09E-4142-A18F-CEB590CE7145}"
 	ProjectSection(SolutionItems) = preProject
-		create-schema.sql = create-schema.sql
+		.env = .env
 		example.env = example.env
 		README.md = README.md
 	EndProjectSection

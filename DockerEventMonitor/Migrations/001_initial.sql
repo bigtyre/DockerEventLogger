@@ -1,11 +1,11 @@
-CREATE TABLE `container_images` (
+CREATE TABLE IF NOT EXISTS `container_images` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `container_events` (
+CREATE TABLE IF NOT EXISTS `container_events` (
   `id` int NOT NULL AUTO_INCREMENT,
   `time` datetime NOT NULL,
   `type` varchar(30) NOT NULL,

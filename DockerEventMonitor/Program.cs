@@ -1,4 +1,5 @@
 ﻿using BigTyre.Docker.Configuration;
+using BigTyre.Docker;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
@@ -7,7 +8,18 @@ using System.Diagnostics;
 
 var appSettings = GetAppSettings(args);
 
-var mysqlConnectionString = appSettings.MySqlConnectionString;// ?? throw new Exception("MySQL Connection string not configured.");
+var mysqlConnectionString = appSettings.MySqlConnectionString;
+
+try
+{
+    DatabaseMigrator.Migrate(mysqlConnectionString);
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine($"Database setup failed: {ex.Message}");
+    Environment.ExitCode = 1;
+    return;
+}
 
 var startInfo = new ProcessStartInfo
 {
@@ -82,6 +94,7 @@ while (!process.StandardOutput.EndOfStream)
 Console.WriteLine("Docker events process ended. Application closing...");
 
 
+/// <summary>Stores an event using lookup IDs for its container, service, and type.</summary>
 void HandleContainerEvent(
     DateTimeOffset time, 
     string action, 
@@ -97,7 +110,16 @@ void HandleContainerEvent(
 
     conn.Open();
 
+    var containerId = GetContainerId(conn, containerName);
+    var typeId = GetEventTypeId(conn, action);
     var timeString = time.ToUniversalTime().DateTime.ToString("yyyy-MM-dd HH:mm:ss.fff");
+
+    ushort? serviceId = null;
+
+    if (serviceName is not null)
+    {
+        serviceId = GetServiceId(conn, serviceName);
+    }
 
     int? imageId = null;
 
@@ -133,16 +155,94 @@ void HandleContainerEvent(
 
 
     using var eventInsertCommand = conn.CreateCommand();
-    eventInsertCommand.CommandText = "INSERT INTO `container_events` (`time`, `type`, `container_name`, `service_name`, `image_id`) VALUES (@time, @type, @containerName, @serviceName, @imageId);";
+    eventInsertCommand.CommandText = "INSERT INTO `container_events` (`time`, `type_id`, `container_id`, `service_id`, `image_id`) VALUES (@time, @typeId, @containerId, @serviceId, @imageId);";
     eventInsertCommand.Parameters.AddWithValue("time", timeString);
-    eventInsertCommand.Parameters.AddWithValue("type", action);
-    eventInsertCommand.Parameters.AddWithValue("containerName", containerName);
-    eventInsertCommand.Parameters.AddWithValue("serviceName", serviceName);
+    eventInsertCommand.Parameters.AddWithValue("typeId", typeId);
+    eventInsertCommand.Parameters.AddWithValue("containerId", containerId);
+    eventInsertCommand.Parameters.AddWithValue("serviceId", serviceId);
     eventInsertCommand.Parameters.AddWithValue("imageId", imageId);
 
     eventInsertCommand.ExecuteNonQuery();
 
     conn.Close();
+}
+
+/// <summary>Finds or creates a container, safely handling concurrent inserts of the same name.</summary>
+uint GetContainerId(MySqlConnection conn, string containerName)
+{
+    using var lookupCommand = conn.CreateCommand();
+    lookupCommand.CommandText = "SELECT `id` FROM `containers` WHERE `name` = @containerName LIMIT 1;";
+    lookupCommand.Parameters.AddWithValue("containerName", containerName);
+
+    var id = lookupCommand.ExecuteScalar();
+
+    if (id is null)
+    {
+        using var insertCommand = conn.CreateCommand();
+        insertCommand.CommandText = """
+            INSERT INTO `containers` (`name`) VALUES (@containerName)
+            ON DUPLICATE KEY UPDATE `id` = LAST_INSERT_ID(`id`);
+            """;
+        insertCommand.Parameters.AddWithValue("containerName", containerName);
+        insertCommand.ExecuteNonQuery();
+
+        id = insertCommand.LastInsertedId;
+    }
+
+    var containerId = Convert.ToUInt32(id);
+    return containerId;
+}
+
+/// <summary>Finds or creates a service, safely handling concurrent inserts of the same name.</summary>
+ushort GetServiceId(MySqlConnection conn, string serviceName)
+{
+    using var lookupCommand = conn.CreateCommand();
+    lookupCommand.CommandText = "SELECT `id` FROM `services` WHERE `name` = @serviceName LIMIT 1;";
+    lookupCommand.Parameters.AddWithValue("serviceName", serviceName);
+
+    var id = lookupCommand.ExecuteScalar();
+
+    if (id is null)
+    {
+        using var insertCommand = conn.CreateCommand();
+        insertCommand.CommandText = """
+            INSERT INTO `services` (`name`) VALUES (@serviceName)
+            ON DUPLICATE KEY UPDATE `id` = LAST_INSERT_ID(`id`);
+            """;
+        insertCommand.Parameters.AddWithValue("serviceName", serviceName);
+        insertCommand.ExecuteNonQuery();
+
+        id = insertCommand.LastInsertedId;
+    }
+
+    var serviceId = Convert.ToUInt16(id);
+    return serviceId;
+}
+
+/// <summary>Finds or creates an event type, safely handling concurrent inserts of the same name.</summary>
+ushort GetEventTypeId(MySqlConnection conn, string typeName)
+{
+    using var lookupCommand = conn.CreateCommand();
+    lookupCommand.CommandText = "SELECT `id` FROM `event_types` WHERE `name` = @typeName LIMIT 1;";
+    lookupCommand.Parameters.AddWithValue("typeName", typeName);
+
+    var id = lookupCommand.ExecuteScalar();
+
+    if (id is null)
+    {
+        using var insertCommand = conn.CreateCommand();
+        insertCommand.CommandText = """
+            INSERT INTO `event_types` (`name`) VALUES (@typeName)
+            ON DUPLICATE KEY UPDATE `id` = LAST_INSERT_ID(`id`);
+            """;
+        insertCommand.Parameters.AddWithValue("typeName", typeName);
+        insertCommand.ExecuteNonQuery();
+
+        id = insertCommand.LastInsertedId;
+    }
+
+    var typeId = Convert.ToUInt16(id);
+    return typeId;
 }
 
 AppSettings GetAppSettings(string[] args)
