@@ -38,14 +38,18 @@ SELECT * FROM container_events_readable ORDER BY time DESC LIMIT 100;
 
 ## Retention setting
 
-`RetentionDays` defaults to `90` and can be overridden in `.env`, for example `RetentionDays=30`. This currently only configures the retention period; automatic deletion has not been implemented.
+`RetentionDays` defaults to `90` and can be overridden in `.env`, for example `RetentionDays=30`. It must be greater than zero.
+
+Cleanup runs in the background at startup and hourly, deleting events older than the configured number of days using UTC timestamps. Each batch deletes at most 5,000 events, with a 250 ms pause between full batches. A cleanup run reuses one connection and command, then releases them before waiting for the next run. Lookup tables are retained.
+
+Cleanup failures are logged and retried on the next hourly run while event monitoring continues. The database account needs `DELETE` permission on `container_events`.
 
 ## MySQL permissions
 
-The account in `MySqlConnectionString` needs `CREATE`, `CREATE VIEW`, `ALTER`, `SELECT`, `INSERT`, `UPDATE`, and `REFERENCES` permissions on the configured database. `CREATE` covers creating the database and tables; `CREATE VIEW` allows the readable events view; `ALTER` allows migrations to change columns, indexes, and constraints; `REFERENCES` permits foreign keys from events to the lookup tables. A MySQL administrator can grant these permissions before the database exists, for example:
+The account in `MySqlConnectionString` needs `CREATE`, `CREATE VIEW`, `ALTER`, `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and `REFERENCES` permissions on the configured database. `CREATE` covers creating the database and tables; `CREATE VIEW` allows the readable events view; `ALTER` allows migrations to change columns, indexes, and constraints; `REFERENCES` permits foreign keys from events to the lookup tables; `DELETE` allows retention cleanup. A MySQL administrator can grant these permissions before the database exists, for example:
 
 ```sql
-GRANT CREATE, CREATE VIEW, ALTER, SELECT, INSERT, UPDATE, REFERENCES
+GRANT CREATE, CREATE VIEW, ALTER, SELECT, INSERT, UPDATE, DELETE, REFERENCES
 ON `docker_events`.* TO 'docker_event_logger'@'%';
 ```
 

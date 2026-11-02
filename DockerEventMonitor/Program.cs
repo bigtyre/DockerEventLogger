@@ -6,7 +6,18 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 
 
-var appSettings = GetAppSettings(args);
+AppSettings appSettings;
+
+try
+{
+    appSettings = GetAppSettings(args);
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine($"Configuration error: {ex.Message}");
+    Environment.ExitCode = 1;
+    return;
+}
 
 var mysqlConnectionString = appSettings.MySqlConnectionString;
 
@@ -30,65 +41,76 @@ var startInfo = new ProcessStartInfo
     CreateNoWindow = true
 };
 
-var process = new Process { StartInfo = startInfo };
+using var process = new Process { StartInfo = startInfo };
 process.Start();
 
-while (!process.StandardOutput.EndOfStream)
+using var retentionCancellation = new CancellationTokenSource();
+var retentionTask = EventRetention.RunAsync(mysqlConnectionString!, appSettings.RetentionDays, retentionCancellation.Token);
+
+try
 {
-    var line = process.StandardOutput.ReadLine();
-    if (line is null)
-        continue;
-
-    try
+    while (true)
     {
-        var dockerEvent = JsonConvert.DeserializeObject<DockerEvent>(line);
-        if (dockerEvent is null)
-            continue;
+        var line = await process.StandardOutput.ReadLineAsync();
+        if (line is null)
+            break;
 
-        var action = dockerEvent.Action;
-        if (action is null)
-            continue;
-
-        if (action.StartsWith("exec_"))
-            continue;
-
-
-        var type = dockerEvent.Type;
-        if (type is null)
-            continue;
-
-        if (type != "container")
-            continue;
-
-        var imageName = dockerEvent.From;
-        var timestamp = dockerEvent.Time;
-        var time = DateTimeOffset.FromUnixTimeSeconds(timestamp);
-        var actor = dockerEvent.Actor;
-
-        string? serviceName = null;
-        string? containerName = null;
-        if (actor is not null)
+        try
         {
-            var attributes = actor.Attributes;
-            attributes.TryGetValue("com.docker.swarm.service.name", out serviceName);
-            attributes.TryGetValue("name", out containerName);
+            var dockerEvent = JsonConvert.DeserializeObject<DockerEvent>(line);
+            if (dockerEvent is null)
+                continue;
+
+            var action = dockerEvent.Action;
+            if (action is null)
+                continue;
+
+            if (action.StartsWith("exec_"))
+                continue;
+
+
+            var type = dockerEvent.Type;
+            if (type is null)
+                continue;
+
+            if (type != "container")
+                continue;
+
+            var imageName = dockerEvent.From;
+            var timestamp = dockerEvent.Time;
+            var time = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+            var actor = dockerEvent.Actor;
+
+            string? serviceName = null;
+            string? containerName = null;
+            if (actor is not null)
+            {
+                var attributes = actor.Attributes;
+                attributes.TryGetValue("com.docker.swarm.service.name", out serviceName);
+                attributes.TryGetValue("name", out containerName);
+            }
+
+            Console.WriteLine($"{time:O}, Action: {action}, Service: {serviceName ?? "NULL"}, Container: {containerName ?? "NULL"}");
+
+            if (containerName is null)
+            {
+                Console.WriteLine("Container name was null. Event will not be written to the database.");
+                continue;
+            }
+
+            HandleContainerEvent(time, action, containerName, serviceName, imageName);
+            //Console.WriteLine($"{JsonConvert.SerializeObject(dockerEvent, Formatting.Indented)}");
         }
-
-        Console.WriteLine($"{time:O}, Action: {action}, Service: {serviceName ?? "NULL"}, Container: {containerName ?? "NULL"}");
-
-        if (containerName is null)
+        catch (Exception ex)
         {
-            Console.WriteLine("Container name was null. Event will not be written to the database.");
-            continue;
+            Console.Error.WriteLine($"Error while processing docker event: {ex.Message}");
         }
-
-        HandleContainerEvent(time, action, containerName, serviceName, imageName);
-        //Console.WriteLine($"{JsonConvert.SerializeObject(dockerEvent, Formatting.Indented)}");
     }
-    catch (Exception ex)
-    {
-        Console.Error.WriteLine($"Error while processing docker event: {ex.Message}");
-    }
+}
+finally
+{
+    retentionCancellation.Cancel();
+    await retentionTask;
 }
 
 Console.WriteLine("Docker events process ended. Application closing...");
@@ -245,11 +267,18 @@ ushort GetEventTypeId(MySqlConnection conn, string typeName)
     return typeId;
 }
 
+/// <summary>Binds configuration and rejects an invalid retention period before startup.</summary>
 AppSettings GetAppSettings(string[] args)
 {
     var config = GetAppConfiguration(args);
     var settings = new AppSettings();
     config.Bind(settings);
+
+    if (settings.RetentionDays < 1)
+    {
+        throw new InvalidOperationException("RetentionDays must be at least 1.");
+    }
+
     return settings;
 }
 

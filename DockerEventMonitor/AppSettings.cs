@@ -4,7 +4,7 @@
     {
         public string? MySqlConnectionString { get; set; }
 
-        /// <summary>Configured retention period in days; cleanup is not implemented yet.</summary>
+        /// <summary>Number of days of event history to retain; must be greater than zero.</summary>
         public int RetentionDays { get; set; } = 90;
     }
 }
